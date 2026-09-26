@@ -293,7 +293,16 @@ function footer(project: RenderProject, scene: RenderScene): string {
 
 export class HtmlFrameProvider implements FrameProvider {
   readonly id = "editorial_html";
-  readonly version = "2.0.0";
+  /**
+   * Bumped for renderer changes that alter the pixels: 2.0.1 for the `pulse()`
+   * motion fix, 2.0.2 for the fitted `Counter` type.
+   *
+   * The render cache is keyed on this string, so a change to generated markup or
+   * motion has to bump it. Without the bump, the heart sample's frozen scene
+   * would be served straight back out of the cache by every later run and the
+   * fix would appear to have done nothing.
+   */
+  readonly version = "2.0.3";
 
   html(project: RenderProject, scene: RenderScene): string {
     const p = paletteFor(project.palette_id);
@@ -449,7 +458,13 @@ window.__hfTimeline = gsap.timeline({ paused: true });
   const d = ${duration.toFixed(3)};
 
   // Camera push: slow, continuous, the one cinematic move every shot gets.
-  tl.fromTo('.stage', { scale: 1 }, { scale: 1.045, duration: d, ease: 'none' }, 0);
+  //
+  // Kept under 1.035 deliberately. A push scales the whole stage about its centre,
+  // so the last frames of every shot are the frame's largest, and a push that
+  // ignores the safe margin spends it: at 1.045 a diagram that filled the safe
+  // width finished 4px outside it. The difference in motion is imperceptible and
+  // the difference in the render gate is not.
+  tl.fromTo('.stage', { scale: 1 }, { scale: 1.03, duration: d, ease: 'none' }, 0);
 
   // Secondary information enters before the focal point settles.
   ${headlineMotion}

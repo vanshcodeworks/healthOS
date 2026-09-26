@@ -99,10 +99,12 @@ export interface FrameProvider {
   /**
    * The scene's motion, evaluated after GSAP is loaded.
    *
-   * Must build a paused `window.__hfTimeline` in seconds. Absent, the scene is
-   * captured as a single still. Present, it is captured at `video.fps` frames
-   * per second by seeking the timeline, which is what makes a shot animate
-   * rather than sit.
+   * Must build a paused `window.__hfTimeline` in seconds. Omitted entirely, the
+   * scene is captured as a single still, which is a legitimate choice for a hold.
+   * Declared and then broken, it is an error: the engine refuses to capture the
+   * scene, because a failed script is indistinguishable from a hold once the
+   * frames are on disk, and a scene of identical frames passes every duration and
+   * probe check while being a video of nothing happening.
    */
   bootScript?(project: RenderProject, scene: RenderScene): string;
 }

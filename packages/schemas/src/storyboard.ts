@@ -440,14 +440,20 @@ export const SceneSchema = z
         message: `scene ${scene.scene_id}: end (${scene.end}) must be greater than start (${scene.start})`,
       });
     }
-    if (scene.end - scene.start < 0.6) {
+    // Scene windows are stored to two decimals, and the difference of two such
+    // floats is not itself two decimals: 14.62 - 0.62 is 14.000000000000002, which
+    // is greater than 14. A scene the planner had put exactly on the ceiling was
+    // rejected for exceeding it, and the topic could not be built at all. The
+    // tolerance is a millisecond, far below anything the pacing rule is about.
+    const duration = Math.round((scene.end - scene.start) * 100) / 100;
+    if (duration < 0.6) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["end"],
         message: `scene ${scene.scene_id}: duration below the 0.6s readability floor`,
       });
     }
-    if (scene.end - scene.start > 14) {
+    if (duration > 14) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["end"],

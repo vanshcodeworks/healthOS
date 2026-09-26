@@ -6,7 +6,7 @@
 // asserted directly rather than inferred from the total duration.
 
 import { describe, expect, it } from "vitest";
-import { allocateScenes, distribute, round2, MIN_SCENE_S } from "@hc/storyboard";
+import { allocateScenes, distribute, round2, MAX_SCENE_S, MIN_SCENE_S } from "@hc/storyboard";
 
 const unit = (id: string, speech_s: number, silent = false) => ({ id, speech_s, silent });
 
@@ -34,23 +34,37 @@ describe("allocateScenes", () => {
     expect(scenes).toHaveLength(2);
   });
 
-  it("still fills the total exactly when it compresses", () => {
-    const scenes = allocateScenes([unit("a", 30), unit("b", 30)], { total_s: 20 });
-    expect(round2(scenes[scenes.length - 1]!.end)).toBe(20);
+  it("fills the total exactly when it can be done without cutting a line", () => {
+    // 8 + 12 + 5 + 7 of speech in a 40s target: the content fits, so the windows
+    // are compressed down to the target and the timeline is still tiled to the end.
+    const scenes = allocateScenes([unit("a", 12), unit("b", 12), unit("c", 12)], { total_s: 40 });
+    expect(round2(scenes[scenes.length - 1]!.end)).toBe(40);
   });
 
-  // max_s is a soft target, not a guarantee: when there are too few scenes to
-  // reach the total, the remaining time lands on the last one. In the real
-  // pipeline the final scene is the spoken disclaimer, which is exactly the
-  // scene that can absorb slack, so this has never produced a 41-second pause in
-  // a finished video. It is pinned here so the behaviour is deliberate and
-  // visible rather than accidental.
-  it("gives leftover time to the final scene when the caps cannot absorb it", () => {
+  // max_s is a ceiling, not a suggestion. Dumping the leftover on the last scene
+  // used to look harmless because in the real pipeline the last scene is the
+  // spoken disclaimer, and a disclaimer can absorb slack — which is exactly why
+  // nobody read the number. It is 41 seconds of a held frame in a finished video
+  // whenever the caps cannot absorb the time, and a storyboard that fails
+  // validation on three scenes whenever the shortfall spreads the other way. The
+  // ceiling holds now and the leftover is reported instead.
+  it("holds the ceiling rather than handing the leftover to the final scene", () => {
     const scenes = allocateScenes([unit("a", 20), unit("disclaimer", 5)], { total_s: 55 });
     const last = scenes[scenes.length - 1]!;
-    expect(last.id).toBe("disclaimer");
-    expect(last.duration_s).toBeGreaterThan(20);
-    expect(round2(last.end)).toBe(55);
+    expect(last.duration_s).toBeLessThanOrEqual(MAX_SCENE_S);
+    expect(last.end).toBeLessThan(55);
+  });
+
+  it("reports the overrun on every scene when the target is shorter than the content", () => {
+    // 60s of speech cannot be rendered in 20s. Neither bound can be satisfied —
+    // the ceiling is enforced by storyboard validation, and a scene shorter than
+    // its own line would clip the narration — so the ceiling holds and the cut is
+    // reported rather than hidden. A line trimmed by the ceiling otherwise reads
+    // as a scene that simply had less to say, which is the one reading that is
+    // wrong.
+    const scenes = allocateScenes([unit("a", 30), unit("b", 30)], { total_s: 20 });
+    expect(scenes.every((s) => s.duration_s <= MAX_SCENE_S)).toBe(true);
+    expect(scenes.every((s) => s.overflow_s > 0)).toBe(true);
   });
 
   it("does not starve a silent beat below the minimum", () => {

@@ -196,8 +196,18 @@ function seededDrift(count: number, seed: number, distance: number, delay = 0.4,
 })();`;
 }
 
-function pulse(sel2: string, delay = 0.6, period = 1.1): string {
-  return `tl.to('${sel2}', { scale: 1.06, transformOrigin: '50% 50%', duration: ${period * 0.35}, ease: 'sine.inOut', yoyo: true, repeat: 3 }, ${delay});`;
+/**
+ * A repeating scale pulse.
+ *
+ * The selector argument is interpolated as an expression, not as a quoted
+ * string, because callers pass `sel + ' [data-hf=beat]'` where `sel` is a local
+ * variable. Wrapping that in quotes emitted `tl.to('sel + ' [data-hf=beat]''`,
+ * which is a syntax error: the whole scene's motion script failed to parse, the
+ * timeline was never created, and the renderer captured one identical frame per
+ * frame while every duration and probe check still passed.
+ */
+function pulse(target: string, delay = 0.6, period = 1.1): string {
+  return `tl.to(${target}, { scale: 1.06, transformOrigin: '50% 50%', duration: ${period * 0.35}, ease: 'sine.inOut', yoyo: true, repeat: 3 }, ${delay});`;
 }
 
 // ---------------------------------------------------------------------------
@@ -379,6 +389,15 @@ function ring(component: RenderComponent, p: Palette): ComponentVisual {
   ${countUp(0.5, 0.7)}`,
   };
 }
+/**
+ * A figure, set large.
+ *
+ * The glyphs are the widest thing this component draws, so the type size is fitted
+ * to the extent rather than fixed at 190px. A fixed size overflowed on long values
+ * such as "2.5 litres/day", and because the extent is scaled up to 1.6x for a focal
+ * cell, an overflow of a few dozen pixels in here became content running off both
+ * edges of the frame in every single frame of the shot.
+ */
 function counter(component: RenderComponent, p: Palette): ComponentVisual {
   const label = str(component.params.label, str(component.label, "0"));
   const { n, decimals, suffix } = splitValue(label, 0);
@@ -386,15 +405,25 @@ function counter(component: RenderComponent, p: Palette): ComponentVisual {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+  const w = 600;
+  const h = 250;
+  const text = `${shown}${suffix}`;
+  // Digits in a heavy sans face run a little over half their point size, so this is
+  // an estimate rather than a measurement; the 0.86 factor leaves the margin that
+  // keeps the estimate on the safe side.
+  const fontSize = Math.max(64, Math.min(190, Math.floor((w * 0.86) / (text.length * 0.56))));
   return {
     weight: 4,
-    extent: { w: 640, h: 260 },
+    extent: { w, h: 250 },
     svg: `<g>
       <text data-hf="count" data-count="${n}" data-decimals="${decimals}" data-suffix="${esc(suffix)}"
-        x="320" y="200" text-anchor="middle" font-size="190" font-weight="700" fill="${p.ink}" font-family="${TYPE.text}">${shown}${esc(
-          suffix,
+        x="${w / 2}" y="${Math.round(h * 0.78)}" text-anchor="middle" font-size="${fontSize}" font-weight="700" fill="${p.ink}" font-family="${TYPE.text}">${esc(
+          text,
         )}</text>
-      <line data-hf="draw" x1="180" y1="238" x2="460" y2="238" ${strokeAttrs(p.accent, 3)}/>
+      <line data-hf="draw" x1="${Math.round(w * 0.28)}" y1="${h - 12}" x2="${Math.round(w * 0.72)}" y2="${h - 12}" ${strokeAttrs(
+          p.accent,
+          3,
+        )}/>
     </g>`,
     motion: `${countUp(0.2, 0.9)}
   ${draw(0.8, 0.5, "power2.out")}`,
@@ -743,6 +772,20 @@ const CHARTS: Record<
   BeforeAfter: beforeAfter,
   Callout: callout,
 };
+
+/**
+ * Every component name the renderer can draw.
+ *
+ * Exported so that tests can build a scene for each one. Motion scripts are
+ * generated as source text, and a generated script with a syntax error takes the
+ * whole scene's timeline down with it, so each name has to be exercised rather
+ * than assumed correct.
+ */
+export const COMPONENT_NAMES: readonly string[] = [
+  ...Object.keys(CHARTS),
+  ...Object.keys(ANATOMY),
+  ...Object.keys(SCIENCE),
+].sort();
 
 /**
  * Draws a component.

@@ -60,9 +60,60 @@ function workspacePackages(): Pkg[] {
 const packages = workspacePackages();
 const byName = new Map(packages.map((p) => [p.name, p]));
 
+/**
+ * Source with comments removed.
+ *
+ * The scanner below is a regex over raw text, and a doc comment is allowed to
+ * contain code-like prose: `The basis a figure is stated over: "240 ml cup"
+ * from "mg per 240 ml cup"` was read as an import of a package named
+ * `mg per 240 ml cup`, and the test failed against a dependency that does not
+ * exist. Comments are removed first so the scanner only ever sees code. String
+ * literals are preserved, so a `//` inside a URL is not mistaken for a comment.
+ */
+function stripComments(source: string): string {
+  let out = "";
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i]!;
+    const next = source[i + 1];
+    if (ch === "/" && next === "/") {
+      while (i < source.length && source[i] !== "\n") i += 1;
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      i += 2;
+      while (i < source.length && !(source[i] === "*" && source[i + 1] === "/")) i += 1;
+      i += 2;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      out += ch;
+      i += 1;
+      while (i < source.length) {
+        const c = source[i]!;
+        out += c;
+        i += 1;
+        if (c === "\\") {
+          if (i < source.length) {
+            out += source[i]!;
+            i += 1;
+          }
+          continue;
+        }
+        if (c === quote) break;
+      }
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
 /** Bare module specifiers imported by a file, excluding relative and node builtins. */
 function importsOf(relPath: string): string[] {
-  const source = readFileSync(join(ROOT, relPath), "utf8");
+  const source = stripComments(readFileSync(join(ROOT, relPath), "utf8"));
   const specifiers = new Set<string>();
   const patterns = [
     /\bfrom\s+"([^"]+)"/g,

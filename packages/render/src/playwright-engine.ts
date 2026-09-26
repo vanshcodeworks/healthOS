@@ -185,6 +185,42 @@ export class PlaywrightRenderEngine implements RenderEngine {
     // because a fallback face is a different picture.
     await page.evaluate(() => document.fonts.ready);
 
+    // The timeline has to exist, and it has to have a duration, before a single
+    // frame is captured. A motion script that fails to parse leaves no timeline
+    // behind, the per-frame seek then does nothing because it is guarded by
+    // `if (timeline)`, and the result is one still frame repeated for the length
+    // of the scene: a video that passes ffprobe, passes the duration check, and
+    // passes final validation while one shot is a photograph of nothing moving.
+    // A syntax error in generated motion is exactly as likely as a missing gsap,
+    // so it is reported the same way.
+    if (boot) {
+      const timeline = await page.evaluate(() => {
+        const tl = (window as unknown as { __hfTimeline?: { duration: () => number } }).__hfTimeline;
+        return tl ? Number(tl.duration()) : null;
+      });
+      if (timeline === null) {
+        throw new HealthOSError(
+          `scene "${scene.scene_id}" declared motion but produced no timeline, so every frame would be identical`,
+          {
+            category: "RENDER_ERROR",
+            details: { provider: this.provider.id, scene: scene.scene_id },
+            remediation:
+              "The provider's boot script threw before assigning window.__hfTimeline. Open the scene HTML in a browser and read the console error.",
+          },
+        );
+      }
+      if (!(timeline > 0)) {
+        throw new HealthOSError(
+          `scene "${scene.scene_id}" produced a timeline of duration ${timeline}, so it has nothing to seek`,
+          {
+            category: "RENDER_ERROR",
+            details: { provider: this.provider.id, scene: scene.scene_id, duration: timeline },
+            remediation: "Check the scene duration and the motion the provider attached to it.",
+          },
+        );
+      }
+    }
+
     for (let f = 0; f < frameCount; f += 1) {
       const t = f / fps;
       await page.evaluate((time) => {

@@ -45,10 +45,17 @@ export function allocateScenes(
   const total = options.total_s;
   if (units.length === 0) return [];
 
-  // Each unit needs at least its own speech time plus the breathing room that
-  // makes a cut feel intentional rather than clipped.
+  // Each unit needs at least its own speech time.
+  //
+  // The head and tail breathing room is deliberately not part of that floor. On a
+  // tight track the measured lines already fill the recording, so charging every
+  // scene 0.47s of padding manufactures overflow out of nothing: the content sum
+  // is pushed past the track, the run is declared over budget, and scenes are then
+  // asked to shrink below the time their own words take. Padding is bought out of
+  // the slack below, and when there is no slack it is the overrun that gets
+  // reported, not a scene that cuts its own line off.
   const floors = units.map((u) =>
-    Math.max(u.min_s ?? min, u.silent ? min : u.speech_s + TAIL_HOLD_S + HEAD_LEAD_S),
+    Math.max(u.min_s ?? min, u.silent ? min : u.speech_s),
   );
   const floorTotal = floors.reduce((a, b) => a + b, 0);
 
@@ -65,41 +72,88 @@ export function allocateScenes(
   // Distribute the available time in proportion to how much each scene already
   // needs, so a long narration keeps its length and a short one gains less.
   const weightSum = floors.reduce((a, b) => a + b, 0) || 1;
-  const durations = units.map((u, i) => {
+  const shared = units.map((u, i) => {
     const floor = floors[i] ?? min;
     const share = weightSum === 0 ? 0 : (floor / weightSum) * slack;
     return round2(Math.min(u.max_s ?? max, floor + share));
   });
 
-  // Rounding must not create drift, so the residual lands on the last scene,
-  // which is the natural place for a final beat to run a fraction long.
-  const sum = durations.reduce((a, b) => a + b, 0);
-  const residual = round2(total - sum);
-  if (Math.abs(residual) > 0.001 && durations.length > 0) {
-    const last = durations.length - 1;
-    const adjusted = (durations[last] ?? 0) + residual;
-    if (adjusted >= min) durations[last] = round2(adjusted);
-    else {
-      // The last scene cannot absorb a negative residual without dropping below
-      // the readability floor, so spread it backwards across scenes with room.
-      let remaining = residual;
-      for (let i = durations.length - 1; i >= 0 && Math.abs(remaining) > 0.001; i--) {
-        const current = durations[i] ?? 0;
-        const room = residual < 0 ? current - min : (units[i]?.max_s ?? max) - current;
-        const take = Math.abs(remaining) <= room ? remaining : room;
-        durations[i] = round2(current + take);
-        remaining = round2(remaining - take);
-      }
-    }
-  }
+  // Rounding must not create drift, so the leftover is handed out to whichever
+  // scenes can still absorb it, within their own bounds. The last scene is
+  // offered first because a final beat running a fraction long is the natural
+  // place for slack.
+  const durations = fillToTotal(shared, units, floors, total, min, max);
 
   let cursor = 0;
   return units.map((u, i) => {
     const start = round2(cursor);
     const end = round2(cursor + (durations[i] ?? 0));
     cursor = end;
-    return { id: u.id, start, end, duration_s: round2(end - start), overflow_s: round2(overflow) };
+    // How much of this beat's speech does not fit the window it was given: the
+    // run's overrun, or the part of this scene that the ceiling clipped off it.
+    // A line silently trimmed by the ceiling reads as a scene that simply had less
+    // to say, which is the one reading that is wrong.
+    const cut = round2((floors[i] ?? min) - (durations[i] ?? 0));
+    return {
+      id: u.id,
+      start,
+      end,
+      duration_s: round2(end - start),
+      overflow_s: round2(Math.max(overflow, cut, 0)),
+    };
   });
+}
+
+/**
+ * Nudges windows so they sum to the total without breaking any bound.
+ *
+ * A window may grow to its ceiling, and shrink only to its own floor, which is the
+ * time its line takes to say. Shrinking below that would clip the narration, and
+ * clipping narration to hit a target is the one adjustment this timing code exists
+ * to avoid. If the total cannot be met inside those bounds — the content is longer
+ * than the runtime, or there are fewer scenes than the ceiling allows — the
+ * leftover stays unallocated. A reported shortfall is something a scheduler can
+ * act on; a window past the ceiling is a validation crash several steps later with
+ * no indication of which arithmetic produced it.
+ *
+ * The previous version offered the leftover to one scene, then spread it backwards
+ * with `take = room`, which *added* each scene's headroom instead of taking it
+ * back. A track 7s short of its content therefore produced windows close to twice
+ * as long as the video, three of them past the ceiling, and a storyboard that
+ * failed validation instead of reporting the overrun.
+ */
+function fillToTotal(
+  durations: number[],
+  units: TimeUnit[],
+  floors: number[],
+  total: number,
+  min: number,
+  max: number,
+): number[] {
+  const out = [...durations];
+  const capOf = (i: number): number => units[i]?.max_s ?? max;
+  const floorOf = (i: number): number => Math.max(min, floors[i] ?? min);
+  let remaining = round2(total - out.reduce((a, b) => a + b, 0));
+
+  // Repeated passes rather than a single sweep: a scene already at its bound simply
+  // contributes nothing this time round, and the next scene gets the chance. It
+  // terminates because every non-empty pass either finishes the remaining total or
+  // strictly reduces the room left in the system.
+  let moved = true;
+  while (moved && Math.abs(remaining) > 0.005) {
+    moved = false;
+    for (let i = out.length - 1; i >= 0 && Math.abs(remaining) > 0.005; i--) {
+      const current = out[i] ?? 0;
+      const room = remaining > 0 ? capOf(i) - current : current - floorOf(i);
+      if (room <= 0.005) continue;
+      const take = Math.min(Math.abs(remaining), room);
+      const signed = remaining > 0 ? take : -take;
+      out[i] = round2(current + signed);
+      remaining = round2(remaining - signed);
+      moved = true;
+    }
+  }
+  return out;
 }
 
 /**
