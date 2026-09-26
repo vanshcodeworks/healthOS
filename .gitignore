@@ -1,0 +1,91 @@
+# ---------------------------------------------------------------------------
+# Dependencies and build output
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.eslintcache
+.cache/
+
+# ---------------------------------------------------------------------------
+# Secrets and local configuration
+#
+# `.env.example` is the committed template; every real `.env` is not. The
+# negation has to come after the pattern or the template would be ignored too.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# Credentials that a user drops in by hand
+*.pem
+*.key
+!assets/**/*.pub
+credentials.json
+service-account*.json
+
+# ---------------------------------------------------------------------------
+# Runtime state: regenerated on every run, never source
+# ---------------------------------------------------------------------------
+data/healthos.db
+data/healthos.db-*
+data/healthos.db-shm
+data/healthos.db-wal
+data/**/*.tmp
+data/**/*.partial
+output/
+temp/
+logs/
+
+# ---------------------------------------------------------------------------
+# Rendered media
+#
+# A single 58s vertical video is tens of megabytes and is reproducible from the
+# storyboard plus the audio hash, so it does not belong in history. Frame
+# sequences are worse: thousands of PNGs per video.
+# ---------------------------------------------------------------------------
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.m4a
+*.aac
+
+# Local font and stock caches (regenerable)
+assets/fonts/*.ttf
+assets/fonts/*.otf
+assets/fonts/*.woff
+assets/fonts/*.woff2
+assets/fonts/LICENSE-*
+assets/stock/
+assets/sfx/*.wav
+assets/sfx/*.mp3
+
+# ---------------------------------------------------------------------------
+# Test and tooling output
+# ---------------------------------------------------------------------------
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.vite/
+*.lcov
+
+# ---------------------------------------------------------------------------
+# Editor and OS noise
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/

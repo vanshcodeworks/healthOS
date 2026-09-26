@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  # Workspace dependencies: the root manifest, every package manifest, and the
+  # lockfile are updated together, because a single-package bump here breaks
+  # `npm ci` reproducibility.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      dev-tooling:
+        patterns:
+          - vitest
+          - vite
+          - esbuild
+          - vite-node
+          - "@vitest/*"
+          - typescript
+          - eslint
+          - "@eslint/*"
+          - typescript-eslint
+          - playwright
+          - tsup
+    ignore:
+      # Internal packages are versioned and released with this repository, not
+      # resolved from a registry. A bump here would break `npm ci` in the
+      # workspace.
+      - dependency-name: "@hc/*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - ci

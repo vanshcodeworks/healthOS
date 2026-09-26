@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push supersedes an in-flight run for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Fast gate. Runs on Windows because local narration, and the measured timing
+  # model calibrated against it, depend on Windows SAPI: a Linux runner would
+  # either skip those tests or silently verify a different code path.
+  verify:
+    name: build, lint and unit tests
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Verify production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  # The full gate, including the real end-to-end render. Separated because it
+  # needs Chromium, FFmpeg and several minutes of wall clock, and a formatting
+  # change should not have to wait for a 58-second video to be encoded twice.
+  full:
+    name: full suite and end-to-end render
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      # The Windows runner image ships FFmpeg; the render tests shell out to
+      # ffmpeg and ffprobe, so prove both are on PATH rather than assuming it.
+      - name: Confirm FFmpeg
+        run: |
+          ffmpeg -version
+          ffprobe -version
+
+      - name: Integration and end-to-end tests
+        run: npm run test:integration

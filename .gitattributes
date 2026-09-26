@@ -1,0 +1,41 @@
+# Normalise line endings in the repository, not in the working tree.
+#
+# Without this, a Windows checkout with core.autocrlf=true rewrites every file
+# to CRLF, and the resulting whole-file diff on the next Linux or macOS
+# checkout buries the actual change in whitespace noise.
+* text=auto eol=lf
+
+# Native scripts that genuinely need CRLF to execute on Windows.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Language-specific overrides.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+
+# Lockfiles are machine-written; do not treat them as reviewable prose.
+package-lock.json linguist-generated=true
+
+# Binary assets, should they ever be added on purpose.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff2 binary
+*.pdf binary
+*.mp4 binary
+*.wav binary
