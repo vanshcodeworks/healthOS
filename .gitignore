@@ -77,6 +77,21 @@ playwright/.cache/
 *.lcov
 
 # ---------------------------------------------------------------------------
+# Held back on purpose
+# ---------------------------------------------------------------------------
+
+# The CI workflow is authored and kept on disk, but GitHub rejects any push that
+# creates a file under .github/workflows/ from a token without the `workflow`
+# scope, so committing it would make the whole tree unpushable. It is tracked
+# deliberately rather than deleted, and the day the scope is granted:
+#
+#     gh auth refresh -h github.com -s workflow
+#     git add -f .github/workflows/ci.yml && git commit -m "Add the CI workflow"
+#
+# .github/dependabot.yml is not a workflow file and is tracked normally.
+.github/workflows/
+
+# ---------------------------------------------------------------------------
 # Editor and OS noise
 # ---------------------------------------------------------------------------
 .vscode/
