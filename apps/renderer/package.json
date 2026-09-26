@@ -1,0 +1,26 @@
+{
+  "name": "@hc/renderer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic HTML/CSS/SVG composition runtime executed inside a headless browser.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "runtime"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@hc/core": "1.0.0",
+    "@hc/render": "1.0.0",
+    "@hc/schemas": "1.0.0",
+    "@hc/visuals": "1.0.0"
+  },
+  "engines": { "node": ">=22.13.0" }
+}

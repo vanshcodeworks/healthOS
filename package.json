@@ -1,0 +1,44 @@
+{
+  "name": "health-content-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous short-form health-science content studio: discovery, research, script, storyboard, motion design, render, QA, rights, publishing, analytics.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "bin": {
+    "healthos": "apps/cli/bin/healthos.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "clean": "node scripts/clean.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
+    "db:migrate": "node apps/cli/bin/healthos.mjs db migrate",
+    "healthos": "node apps/cli/bin/healthos.mjs",
+    "demo": "node apps/cli/bin/healthos.mjs batch run --count 3",
+    "verify": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "playwright": "^1.49.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {}
+}

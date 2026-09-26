@@ -1,0 +1,36 @@
+{
+  "name": "@hc/orchestrator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Durable job state machine, batch pipeline, continuous production loop.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@hc/analytics": "1.0.0",
+    "@hc/assets": "1.0.0",
+    "@hc/audio": "1.0.0",
+    "@hc/captions": "1.0.0",
+    "@hc/core": "1.0.0",
+    "@hc/factcheck": "1.0.0",
+    "@hc/publishing": "1.0.0",
+    "@hc/qa": "1.0.0",
+    "@hc/render": "1.0.0",
+    "@hc/research": "1.0.0",
+    "@hc/schemas": "1.0.0",
+    "@hc/storyboard": "1.0.0",
+    "@hc/visuals": "1.0.0",
+    "zod": "^3.24.1"
+  },
+  "engines": { "node": ">=22.13.0" }
+}

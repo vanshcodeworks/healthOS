@@ -1,0 +1,27 @@
+{
+  "name": "@hc/render",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "FFmpeg pipeline, browser render engine, content-addressed cache, inspection.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@hc/core": "1.0.0",
+    "@hc/schemas": "1.0.0",
+    "@hc/visuals": "1.0.0",
+    "gsap": "^3.12.5",
+    "playwright": "^1.49.1"
+  },
+  "engines": { "node": ">=22.13.0" }
+}

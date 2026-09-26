@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Build scripts and the eslint/vitest configs are plain JS/TS at the repo
+    // root. They are here so the linter's project service can resolve them
+    // without a hand-maintained allowlist; checkJs stays off because they are
+    // tooling, not product code.
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["node"],
+    "paths": {
+      "@hc/core": ["./packages/core/src/index.ts"],
+      "@hc/schemas": ["./packages/schemas/src/index.ts"],
+      "@hc/research": ["./packages/research/src/index.ts"],
+      "@hc/script": ["./packages/script/src/index.ts"],
+      "@hc/factcheck": ["./packages/factcheck/src/index.ts"],
+      "@hc/storyboard": ["./packages/storyboard/src/index.ts"],
+      "@hc/assets": ["./packages/assets/src/index.ts"],
+      "@hc/visuals": ["./packages/visuals/src/index.ts"],
+      "@hc/audio": ["./packages/audio/src/index.ts"],
+      "@hc/captions": ["./packages/captions/src/index.ts"],
+      "@hc/render": ["./packages/render/src/index.ts"],
+      "@hc/qa": ["./packages/qa/src/index.ts"],
+      "@hc/publishing": ["./packages/publishing/src/index.ts"],
+      "@hc/analytics": ["./packages/analytics/src/index.ts"],
+      "@hc/orchestrator": ["./apps/orchestrator/src/index.ts"],
+      "@hc/renderer": ["./apps/renderer/src/index.ts"],
+      "@hc/dashboard": ["./apps/dashboard/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "apps/*/src/**/*.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.mjs",
+    "vitest.config.ts",
+    "eslint.config.js"
+  ]
+}

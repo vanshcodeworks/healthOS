@@ -1,0 +1,12 @@
+export * from "./evidence.js";
+export * from "./knowledge/references.js";
+export * from "./knowledge/corpus.js";
+export * from "./normalise.js";
+export * from "./score.js";
+export * from "./source-registry.js";
+export * from "./store.js";
+export * from "./providers/types.js";
+export { EuropePmcProvider } from "./providers/europepmc.js";
+export { RssTrendProvider, parseFeed } from "./providers/rss.js";
+export { discoverTopics, researchTopic } from "./research.js";
+export type { DiscoveryOptions, DiscoveryResult, ResearchTopicInput, ResearchTopicResult } from "./research.js";

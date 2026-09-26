@@ -1,0 +1,24 @@
+{
+  "name": "@hc/schemas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Strict Zod schemas shared across the pipeline.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@hc/core": "1.0.0",
+    "zod": "^3.24.1"
+  },
+  "engines": { "node": ">=22.13.0" }
+}

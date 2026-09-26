@@ -1,0 +1,20 @@
+{
+  "name": "@hc/storyboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Measured storyboard construction: scene allocation, visual strategy policy, component planning.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@hc/core": "1.0.0",
+    "@hc/schemas": "1.0.0",
+    "@hc/script": "1.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  // Solution file for the whole workspace. `tsc -b` reads the reference graph
+  // from here, so every package that emits must appear below. scripts/build.mjs
+  // cross-checks this list against the tsconfig.json files actually on disk and
+  // fails if they have drifted, because a project missing from this list is a
+  // package that silently never gets compiled.
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/schemas" },
+    { "path": "packages/research" },
+    { "path": "packages/script" },
+    { "path": "packages/factcheck" },
+    { "path": "packages/audio" },
+    { "path": "packages/storyboard" },
+    { "path": "packages/render" },
+    { "path": "apps/renderer" },
+    { "path": "apps/orchestrator" }
+  ]
+}
