@@ -15,6 +15,7 @@
     { "path": "packages/storyboard" },
     { "path": "packages/render" },
     { "path": "apps/renderer" },
+    { "path": "apps/remotion-app" },
     { "path": "apps/orchestrator" }
   ]
 }

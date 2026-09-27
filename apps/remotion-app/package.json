@@ -1,0 +1,45 @@
+{
+  "name": "@hc/remotion-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Primary production renderer: renderer-neutral scene graph translated into a frame-based React/Remotion composition tree.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./props": {
+      "types": "./dist/props.d.ts",
+      "default": "./dist/props.js"
+    },
+    "./spacing": {
+      "types": "./dist/art/spacing.d.ts",
+      "default": "./dist/art/spacing.js"
+    },
+    "./measure": {
+      "types": "./dist/art/measure.d.ts",
+      "default": "./dist/art/measure.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@remotion/google-fonts": "^4.0.529",
+    "@remotion/paths": "4.0.529",
+    "@remotion/player": "4.0.529",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.529"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

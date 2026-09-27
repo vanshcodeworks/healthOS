@@ -71,22 +71,38 @@ describe("every topic produces a storyboard", () => {
     }
   });
 
-  it("ends every video with a caveat and a call to action", () => {
-    for (const { board } of boards) {
+  it("ends every video with a call to action, and no standalone disclaimer shot", () => {
+    // The video ends on the call to action. It does not end on a disclaimer, and
+    // it does not spend six seconds of a fifty-second video on the words "this is
+    // not medical advice" — that is a footnote, and a footnote does not get a shot.
+    //
+    // Which means these two tests used to assert something the design deliberately
+    // stopped doing: they required a `caveat`-intent scene at the end of every
+    // storyboard, and the planner no longer emits one. Deleting the assertions
+    // would have been the easy way to make the suite green, and it would have left
+    // the actual requirement untested — that the caveat still reaches the viewer.
+    // So the disclaimer *shot* is asserted gone, and the caveat *wording* is
+    // asserted still present on the script, which is where the publisher picks it
+    // up for the end card, the description and the caption metadata.
+    for (const { kb, draft, board } of boards) {
       const intents = board!.storyboard.scenes.map((s) => s.intent);
-      expect(intents).toContain("caveat");
-      expect(intents).toContain("cta");
+      expect(intents, kb.slug).not.toContain("disclaimer");
+      expect(intents, kb.slug).toContain("cta");
+      // The caveat survives the removal of the shot. A health video with no caveat
+      // anywhere in its source is the failure this requirement exists to prevent.
+      expect(draft.disclaimer.trim(), `${kb.slug} caveat wording`).not.toBe("");
+      expect(draft.disclaimer_full.trim(), `${kb.slug} full caveat`).not.toBe("");
     }
   });
 
-  it("puts the caveat and call to action at the end, not the middle", () => {
-    for (const { board } of boards) {
+  it("puts the call to action at the end, and keeps every claim's caveat on the board", () => {
+    for (const { kb, board } of boards) {
       const intents = board!.storyboard.scenes.map((s) => s.intent);
-      const caveat = intents.indexOf("caveat");
       const cta = intents.indexOf("cta");
-      expect(caveat).toBeGreaterThan(0);
-      expect(cta).toBeGreaterThan(0);
-      expect(Math.max(caveat, cta)).toBeGreaterThanOrEqual(intents.length - 2);
+      expect(cta, kb.slug).toBeGreaterThan(0);
+      // The CTA is the last scene: after it there is the brand card and nothing
+      // else, because the thing after the call to action is the ask being made.
+      expect(cta, kb.slug).toBe(intents.length - 1);
     }
   });
 

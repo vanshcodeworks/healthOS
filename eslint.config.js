@@ -19,6 +19,13 @@ export default tseslint.config(
       "logs/**",
       "temp/**",
       "**/*.tsbuildinfo",
+      // Installed agent skills are third-party source dropped into the tree, not
+      // code this project owns: they are not in any tsconfig, they carry their own
+      // conventions, and linting them produced dozens of parsing errors about files
+      // the project service had never heard of. Vendored code is not this repo's
+      // code to fix.
+      ".agents/**",
+      ".claude/**",
     ],
   },
   js.configs.recommended,
@@ -68,6 +75,16 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       globals: { ...globals.node },
+    },
+  },
+  {
+    // The font calibration runs in Node but its measuring step is a function
+    // handed to `page.evaluate`, which is serialised and executed inside the
+    // browser. Those callbacks legitimately use `document`, and Node's globals
+    // do not include it, so this file is linted with both sets.
+    files: ["scripts/calibrate-font-metrics.mjs"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
     },
   },
   {

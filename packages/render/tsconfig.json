@@ -6,5 +6,9 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../core" }, { "path": "../schemas" }]
+  "references": [
+    { "path": "../core" },
+    { "path": "../schemas" },
+    { "path": "../../apps/remotion-app" }
+  ]
 }

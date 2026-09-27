@@ -85,10 +85,12 @@ export function planScenes(
   if (ctaText) {
     slots.push({ id: "sc_cta", speech_s: seconds(ctaText), intent: "cta", kind: "cta" });
   }
-  const disclaimerText = draft.disclaimer.trim();
-  if (disclaimerText) {
-    slots.push({ id: "sc_disclaimer", speech_s: seconds(disclaimerText), intent: "caveat", kind: "disclaimer" });
-  }
+  // No standalone disclaimer scene. The caveat wording stays on the script
+  // (`draft.disclaimer`, `disclaimer_full`) and is surfaced wherever the
+  // publisher chooses to put it — in captions, in the description, in the end
+  // card. A scene that spends six seconds saying "this is not medical advice"
+  // is six seconds of a video spent on a footnote, and the video ends on the
+  // call to action with the brand under it instead.
 
   // The runtime to fill is the script's target, not its speech estimate. The
   // estimate covers speech alone, so budgeting against it would leave no room

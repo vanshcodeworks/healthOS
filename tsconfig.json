@@ -8,6 +8,9 @@
     // tooling, not product code.
     "allowJs": true,
     "checkJs": false,
+    // The Remotion app is React. Without this, every .tsx in the workspace fails
+    // with "Cannot use JSX unless the '--jsx' flag is provided".
+    "jsx": "react-jsx",
     "types": ["node"],
     "paths": {
       "@hc/core": ["./packages/core/src/index.ts"],
@@ -26,12 +29,29 @@
       "@hc/analytics": ["./packages/analytics/src/index.ts"],
       "@hc/orchestrator": ["./apps/orchestrator/src/index.ts"],
       "@hc/renderer": ["./apps/renderer/src/index.ts"],
+      "@hc/remotion-app": ["./apps/remotion-app/src/index.ts"],
+      "@hc/remotion-app/props": ["./apps/remotion-app/src/props.ts"],
+      // These two live under `art/` in source but are published as top-level
+      // subpaths. Without entries here they fall through to the package's
+      // `exports` map and resolve to `dist/`, so `tsc` type-checked the last build
+      // rather than the code in the tree — which is how `measureLine` still looked
+      // like a two-argument function after its signature had changed.
+      "@hc/remotion-app/spacing": ["./apps/remotion-app/src/art/spacing.ts"],
+      "@hc/remotion-app/measure": ["./apps/remotion-app/src/art/measure.ts"],
+      // Internal layout primitives. Not a published subpath — the test imports the
+      // module directly so the row invariant can be asserted without a render.
+      "@hc/remotion-app/parts-row": ["./apps/remotion-app/src/art/parts-row.ts"],
+      "@hc/remotion-app/typography": ["./apps/remotion-app/src/art/typography.ts"],
+      "@hc/remotion-app/font-metrics": ["./apps/remotion-app/src/art/font-metrics.ts"],
+      "@hc/remotion-app/editorial-text": ["./apps/remotion-app/src/components/EditorialText.tsx"],
+      "@hc/remotion-app/palette": ["./apps/remotion-app/src/art/palette.ts"],
       "@hc/dashboard": ["./apps/dashboard/src/index.ts"]
     }
   },
   "include": [
     "packages/*/src/**/*.ts",
     "apps/*/src/**/*.ts",
+    "apps/*/src/**/*.tsx",
     "tests/**/*.ts",
     "scripts/**/*.mjs",
     "vitest.config.ts",

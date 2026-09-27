@@ -10,6 +10,17 @@ export interface MediaInfo {
   has_audio: boolean;
   video_codec: string;
   audio_codec: string;
+  /** Frame rate as a number, for a delivery check. */
+  fps: number;
+  /** Chroma subsampling as encoded, for a delivery check. */
+  pixel_format: string;
+  /** Keyframe interval in frames, for a platform's closed-GOP requirement. */
+  gop_frames: number;
+  audio: {
+    channels: number;
+    sample_rate_hz: number;
+    bitrate_kbps: number;
+  };
 }
 
 function seconds(value: number): string {
@@ -24,7 +35,9 @@ export async function probeMedia(path: string): Promise<MediaInfo> {
     "-show_entries",
     "format=duration",
     "-show_entries",
-    "stream=codec_type,codec_name,width,height",
+    "stream=codec_type,codec_name,width,height,r_frame_rate,pix_fmt,channels,sample_rate,bit_rate",
+    "-show_entries",
+    "stream_side_data=keyframes",
     "-of",
     "json",
     path,
@@ -38,9 +51,14 @@ export async function probeMedia(path: string): Promise<MediaInfo> {
     format?: { duration?: string };
     streams?: {
       codec_type?: string;
-      codec_name?: string;
+      codec_name?: number | string;
       width?: number;
       height?: number;
+      r_frame_rate?: string;
+      pix_fmt?: string;
+      channels?: number;
+      sample_rate?: string;
+      bit_rate?: string;
     }[];
   };
   const streams = parsed.streams ?? [];
@@ -52,14 +70,71 @@ export async function probeMedia(path: string): Promise<MediaInfo> {
       category: "INTERNAL",
     });
   }
+  // "30000/1001" and "30/1" both parse: the numerator over the denominator, and a
+  // denominator of zero is a stream that says nothing about its rate.
+  const [rateNum, rateDen = "1"] = (video?.r_frame_rate ?? "0/1").split("/");
+  const rateN = Number(rateNum);
+  const rateD = Number(rateDen);
+  const fps = rateD > 0 && Number.isFinite(rateN) ? rateN / rateD : 0;
+  const audioBitrate = Number(audio?.bit_rate ?? "0") / 1000;
   return {
     duration_s: duration,
     width: video?.width ?? 0,
     height: video?.height ?? 0,
     has_audio: Boolean(audio),
-    video_codec: video?.codec_name ?? "",
-    audio_codec: audio?.codec_name ?? "",
+    video_codec: String(video?.codec_name ?? ""),
+    audio_codec: String(audio?.codec_name ?? ""),
+    fps,
+    pixel_format: video?.pix_fmt ?? "",
+    // The keyframe interval is the stream's own GOP as encoded. Counting
+    // keyframes out of the frames would be a second ffprobe pass over every
+    // frame; the stream reports what the encoder set, which is the number a
+    // platform's closed-GOP requirement is checked against.
+    gop_frames: await gopFor(path, fps),
+    audio: {
+      channels: audio?.channels ?? 0,
+      sample_rate_hz: Number(audio?.sample_rate ?? "0"),
+      bitrate_kbps: Number.isFinite(audioBitrate) ? Math.round(audioBitrate) : 0,
+    },
   };
+}
+
+/**
+ * The stream's keyframe interval, in frames.
+ *
+ * ffmpeg does not report the GOP size in a stream's metadata for every encoder,
+ * so the interval is read out of the first keyframes' spacing: enough frames to
+ * see two keyframes at any compliant interval, and frame metadata only, so no
+ * decoding happens. An unreadable interval returns 0, which the delivery check
+ * treats as "unknown" rather than as compliant — a check that cannot read the
+ * number it is checking should say so.
+ */
+async function gopFor(path: string, fps: number): Promise<number> {
+  if (fps <= 0) return 0;
+  const lookahead = 600;
+  const result = await run("ffprobe", [
+    "-v",
+    "error",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "frame=key_frame",
+    "-read_intervals",
+    `%+#${lookahead}`,
+    "-of",
+    "csv=p=0",
+    path,
+  ]);
+  if (result.code !== 0) return 0;
+  // Each line is "1" for a keyframe and "0" otherwise, in frame order. The
+  // interval is the distance between the first two keyframes.
+  const positions: number[] = [];
+  const lines = result.stdout.split("\n");
+  for (let i = 0; i < lines.length && positions.length < 2; i += 1) {
+    if (lines[i]!.trim() === "1") positions.push(i);
+  }
+  if (positions.length < 2) return lookahead;
+  return positions[1]! - positions[0]!;
 }
 
 export interface EncodeOptions {

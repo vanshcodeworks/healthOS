@@ -109,14 +109,29 @@ describe("end-to-end render", () => {
       return;
     }
     const timing = outcome!.storyboard.narration.timing;
-    expect(timing.source).toBe("measured");
+    // Whatever the voice did, the video is that long. This is the invariant, and
+    // it holds in both directions: sizing the video to the brief instead would
+    // either cut the end of the track off or hold a silent tail.
+    expect(timing.source, "a synthesised track is a measurement, not an estimate").toBe("measured");
     expect(timing.target_duration_s).toBe(TARGET_S);
-    // The track is longer than the brief, and the video followed the track.
-    expect(timing.track_duration_s).toBeGreaterThan(TARGET_S);
+    expect(timing.track_duration_s).toBeGreaterThan(0);
     expect(outcome!.storyboard.duration).toBeCloseTo(timing.track_duration_s, 1);
-    // The overrun is reported rather than concealed.
-    expect(outcome!.timing.issues.some((i) => i.code === "audio.over_target")).toBe(true);
-    expect(outcome!.timing.facts.over_target_s).toBeGreaterThan(0);
+    // The report states the relationship rather than concealing it in either
+    // direction. This used to assert a specific overrun, because the caffeine
+    // script spoke a line more than it does now and the real track came in over
+    // 55s. Dropping the standalone disclaimer took a spoken line out, so the real
+    // track is now *under* the brief — and a test that insists on an overrun
+    // measures the script, not the renderer. What has to hold is that the report
+    // agrees with the numbers: an overrun issue exactly when the track is longer
+    // than the target, and none when it is shorter.
+    const overrun = outcome!.storyboard.duration > TARGET_S;
+    expect(outcome!.timing.issues.some((i) => i.code === "audio.over_target")).toBe(overrun);
+    if (overrun) {
+      expect(outcome!.timing.facts.over_target_s).toBeGreaterThan(0);
+      expect(outcome!.timing.facts.over_target_s).toBeCloseTo(timing.track_duration_s - TARGET_S, 1);
+    } else {
+      expect(outcome!.timing.facts.over_target_s).toBe(0);
+    }
   });
 
   it("tiles the shots across the whole track with no gaps", (ctx) => {
@@ -213,14 +228,35 @@ describe("end-to-end render", () => {
     expect(first.equals(middle), "frame 60 is identical to frame 1: nothing moved").toBe(false);
   });
 
-  it("carries the spoken disclaimer into the last shot", (ctx) => {
+  it("carries the caveat into the deliverable, and does not spend a shot on it", (ctx) => {
     if (!available) {
       ctx.skip();
       return;
     }
+    // The video no longer ends on a spoken disclaimer — that shot was removed,
+    // because a footnote does not get six seconds of a fifty-second video. This
+    // test used to assert the opposite, that the last shot's narration was the
+    // disclaimer, and it was the one place the removal was actually verified.
+    //
+    // The requirement it should have been checking is the one that matters: the
+    // caveat still reaches the viewer. It is not in the spoken track any more, so
+    // it has to be in the metadata the publisher builds the description and the
+    // end card from. A health video with the caveat only in a field nobody reads is
+    // a health video with no caveat.
     const last = outcome!.storyboard.scenes.at(-1);
-    expect(last?.narration.toLowerCase()).toMatch(/not medical advice|general information/);
-    expect(outcome!.storyboard.metadata.disclaimer_full.length).toBeGreaterThan(20);
+    expect(last?.intent, "the video ends on the call to action").toBe("cta");
+    const scenes = outcome!.storyboard.scenes;
+    // The caveat is not spoken anywhere in the track. `caveat` remains a valid
+    // scene intent — a qualified claim earns one — so this cannot be asserted as
+    // "no scene has that intent". What must not exist is a shot whose job is to
+    // read the footnote aloud.
+    expect(
+      scenes.filter((s) => /not medical advice|general information/i.test(s.narration)),
+      "the caveat is not spoken in any shot",
+    ).toEqual([]);
+    const full = outcome!.storyboard.metadata.disclaimer_full;
+    expect(full.length, "the full caveat reaches the publisher").toBeGreaterThan(20);
+    expect(full.toLowerCase()).toMatch(/not medical advice|general information/);
   });
 
   it("resumes a finished run without touching the voice again", async (ctx) => {

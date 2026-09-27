@@ -6,10 +6,30 @@ import { buildStoryboard } from "@hc/storyboard";
 import { asVerified, kbTopic, research, topicFor } from "../helpers/corpus.js";
 import { writeScript } from "@hc/script";
 
-/** The eight measured caffeine line durations, and the track they produced. */
-const CAFFEINE_LINES = [3.02, 9.8, 5.62, 7.34, 5.7, 7.36, 3.05, 5.43];
-const SENTENCE_PAUSE_S = 1.389;
-const CAFFEINE_TRACK_S = 57.71;
+/**
+ * The measured caffeine line durations, the engine's per-line pause, and the track
+ * they add up to.
+ *
+ * The track is *computed* rather than written down. It used to be a literal
+ * (`57.71`) beside an eight-line array, and the two were only loosely related, so
+ * nothing caught the script changing underneath them: when the standalone
+ * disclaimer stopped being a spoken line, this topic's script went to seven lines
+ * while the fixture stayed at eight, the builder was handed eight measurements for
+ * seven lines, and it quietly reported `source: "estimated"` — in the one test whose
+ * job is to prove that measured durations are used.
+ *
+ * The pause is deliberately slow. This file tests the duration *rules* — overrun,
+ * truncation, video shorter than its own audio — and the real caffeine track no
+ * longer exercises the overrun case: dropping a spoken line took it under the 55s
+ * target. A fixture that overran because the script happened to overrun would be a
+ * test that stops testing the moment the script changes, which is what the last one
+ * did.
+ */
+const CAFFEINE_LINES = [3.02, 9.8, 5.62, 7.34, 5.7, 7.36, 3.05];
+const SENTENCE_PAUSE_S = 1.95;
+const CAFFEINE_TRACK_S = Number(
+  (CAFFEINE_LINES.reduce((a, b) => a + b, 0) + SENTENCE_PAUSE_S * CAFFEINE_LINES.length).toFixed(2),
+);
 const CAFFEINE_TARGET_S = 55;
 
 async function caffeineBoard(

@@ -15,10 +15,20 @@ import type { BuildStoryboardInput } from "@hc/storyboard";
 
 const WORK_ROOT = join(process.cwd(), "temp", "runs-test");
 
-/** Line durations chosen so the track overruns the 55s brief, as caffeine does. */
-const LINES_S = [3.02, 9.8, 5.62, 7.34, 5.7, 7.36, 3.05, 5.43];
-const SENTENCE_PAUSE_S = 1.389;
-const TRACK_S = 57.71;
+/**
+ * Line durations for the fake engine, the pause it adds per line, and the track
+ * they add up to.
+ *
+ * Seven lines, because that is how many the caffeine script has now that the
+ * standalone disclaimer is no longer spoken, and the track is computed from them.
+ * The previous fixture was an eight-line array with a hand-written track beside it,
+ * so when the script lost a line the fake kept measuring eight and the test that
+ * checks a run's measurements survive a reload was comparing them against a length
+ * nothing else in the pipeline agreed with.
+ */
+const LINES_S = [3.02, 9.8, 5.62, 7.34, 5.7, 7.36, 3.05];
+const SENTENCE_PAUSE_S = 1.95;
+const TRACK_S = Number((LINES_S.reduce((a, b) => a + b, 0) + SENTENCE_PAUSE_S * LINES_S.length).toFixed(2));
 
 class FakeTts implements TtsProvider {
   readonly profile: VoiceProfile = {
@@ -252,7 +262,10 @@ describe("orchestrator", () => {
     const reloaded = await store.load("run-durable");
     expect(reloaded?.audio?.line_content_s).toHaveLength(LINES_S.length);
     expect(reloaded?.audio?.track_duration_s).toBeCloseTo(TRACK_S, 1);
-    expect(reloaded?.scene_timings.length).toBe(reloaded?.storyboard_version ? 8 : 0);
+    // A timing is recorded per scene, and a scene per spoken line. The count is
+    // taken from the measurements rather than written down, so a script that gains
+    // or loses a line cannot leave a stale eight here.
+    expect(reloaded?.scene_timings.length).toBe(LINES_S.length);
     expect(reloaded?.final_validation?.ok).toBe(true);
     expect(reloaded?.render?.video_duration_s).toBeCloseTo(TRACK_S, 1);
   });

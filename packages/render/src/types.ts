@@ -81,6 +81,17 @@ export interface RenderProject {
   /** Full legal wording. The renderer shows it; it never shortens it. */
   disclaimer: string;
   cta: { enabled: boolean; kind: string; text: string };
+  /**
+   * The canonical graph, carried by reference and never copied.
+   *
+   * The flat fields above are a lossy projection: chart data, narration segments,
+   * visual strategy and transition choices do not survive it. Renderers that draw
+   * from markup read the flat shape; renderers that compose a scene graph need the
+   * original, and re-deriving it from the projection would be a second, drifting
+   * parser. Absent means "flat only", which the HTML engine is happy with and the
+   * composition engine rejects with an explanation.
+   */
+  storyboard?: Storyboard;
 }
 
 /**
@@ -194,5 +205,6 @@ export function toRenderProject(
       kind: storyboard.cta.kind,
       text: storyboard.cta.text ?? "",
     },
+    storyboard,
   };
 }

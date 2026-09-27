@@ -1,0 +1,123 @@
+{
+  "source": "Wikimedia Commons",
+  "retrieved": "2026-09-27T08:38:59.078Z",
+  "assets": [
+    {
+      "figure": "brain",
+      "file": "anatomy/brain.svg",
+      "source": "File:Brain Lateral (NIH BioArt 60).svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Brain_Lateral_%28NIH_BioArt_60%29.svg",
+      "credit": "Courtesy of NIAID\n\nRyan Kissinger",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 512,
+      "height": 410,
+      "bytes": 430385,
+      "labelled": false
+    },
+    {
+      "figure": "heart",
+      "file": "anatomy/heart.svg",
+      "source": "File:Surface anatomy of the heart.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Surface_anatomy_of_the_heart.svg",
+      "credit": "Mikael Häggström",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 431,
+      "height": 615,
+      "bytes": 935903,
+      "labelled": true
+    },
+    {
+      "figure": "lungs",
+      "file": "anatomy/lungs.svg",
+      "source": "File:Respiratory system complete en.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Respiratory_system_complete_en.svg",
+      "credit": "LadyofHats, Jmarchn",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 512,
+      "height": 545,
+      "bytes": 282267,
+      "labelled": true
+    },
+    {
+      "figure": "stomach",
+      "file": "anatomy/stomach.svg",
+      "source": "File:Stomach diagram.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Stomach_diagram.svg",
+      "credit": "Indolences at English Wikipedia",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 255,
+      "height": 255,
+      "bytes": 17827,
+      "labelled": true
+    },
+    {
+      "figure": "intestine",
+      "file": "anatomy/intestine.svg",
+      "source": "File:Small intestine.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Small_intestine.svg",
+      "credit": "Mikael Häggström, M.D. Author info - Reusing images- Conflicts of interest:  None\nMikael Häggström, M.D.",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 595,
+      "height": 842,
+      "bytes": 21871,
+      "labelled": false
+    },
+    {
+      "figure": "kidney",
+      "file": "anatomy/kidney.svg",
+      "source": "File:Human Kidney (NIH BioArt 229).svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Human_Kidney_%28NIH_BioArt_229%29.svg",
+      "credit": "Courtesy of NIAID\n\nRyan Kissinger",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 512,
+      "height": 582,
+      "bytes": 344315,
+      "labelled": false
+    },
+    {
+      "figure": "neuron",
+      "file": "anatomy/neuron.svg",
+      "source": "File:Complete neuron cell diagram en.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Complete_neuron_cell_diagram_en.svg",
+      "credit": "LadyofHats",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 819,
+      "height": 596,
+      "bytes": 312443,
+      "labelled": false
+    },
+    {
+      "figure": "cell",
+      "file": "anatomy/cell.svg",
+      "source": "File:Animal cell structure en.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Animal_cell_structure_en.svg",
+      "credit": "LadyofHats (Mariana Ruiz)",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 512,
+      "height": 342,
+      "bytes": 154426,
+      "labelled": true
+    },
+    {
+      "figure": "receptor",
+      "file": "anatomy/receptor.svg",
+      "source": "File:Receptor Protein (NIH BioArt 432 - 634179).svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Receptor_Protein_%28NIH_BioArt_432_-_634179%29.svg",
+      "credit": "Courtesy of NIAID\n\nRyan Kissinger",
+      "licence": "Public domain",
+      "licence_url": "",
+      "width": 512,
+      "height": 512,
+      "bytes": 2209,
+      "labelled": false
+    }
+  ]
+}

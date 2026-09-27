@@ -14,6 +14,15 @@ export const DEFAULT_TOLERANCE_S = 0.05;
 /** A caption shorter than this cannot be read, so it is treated as a defect. */
 export const MIN_CAPTION_S = 0.2;
 
+/**
+ * Words per second a burned-in caption may run at before it is a warning.
+ *
+ * Adult captioning guidance puts the readable ceiling around three to four words a
+ * second. Above it, a viewer is reading faster than they can look away from the
+ * line, and shrinking the type to fit makes it worse rather than better.
+ */
+export const MAX_CAPTION_WORDS_PER_S = 4;
+
 export interface TimingPolicy {
   /** Hard ceiling on a single shot. */
   maxSceneS: number;
@@ -201,18 +210,29 @@ export function validateTiming(
         scene_id: segment.scene_id,
       });
     }
-    // A caption that quotes narration may not drop the words that do not fit:
-    // losing the tail of a sentence is content loss, so an overrun budget is
-    // flagged here for the writer rather than trimmed in the renderer.
+    // A caption may not drop the words that do not fit: losing the tail of a
+    // sentence is content loss, so an overrun is flagged here for the writer rather
+    // than trimmed in the renderer. What has to be measured is the *pace*, not the
+    // length of the segment: the band reveals words as they are spoken and re-breaks
+    // the line to fit the screen, so a twenty-word sentence is not twenty words on
+    // screen. Comparing a segment's total against a per-screen-line budget measured
+    // every ordinary sentence in the corpus as over budget, which is a rule that
+    // fires on everything and so reports nothing.
+    //
+    // Four words a second is the ceiling: above that an adult reader loses the line
+    // in a two-line band at caption size, and no amount of fitting makes it
+    // readable. The corpus runs 2.1 to 3.4 words a second.
     const words = segment.text.split(/\s+/).filter(Boolean).length;
-    if (
-      words > storyboard.captions.max_words_per_line * storyboard.captions.max_lines ||
-      segment.text.length > storyboard.captions.max_chars_per_line * storyboard.captions.max_lines
-    ) {
+    const span = segment.end_s - segment.start_s;
+    const wordsPerSecond = words / Math.max(0.001, span);
+    if (wordsPerSecond > MAX_CAPTION_WORDS_PER_S) {
       issues.push({
         code: "caption.over_budget",
         severity: "warning",
-        message: `caption for ${segment.scene_id} has ${words} words, over the ${storyboard.captions.max_words_per_line * storyboard.captions.max_lines}-word budget; the renderer will scale it rather than drop it`,
+        message:
+          `caption for ${segment.scene_id} runs ${words} words in ${span.toFixed(2)}s ` +
+          `(${wordsPerSecond.toFixed(1)} words/s, over the ${MAX_CAPTION_WORDS_PER_S}-word/s reading pace); ` +
+          "the renderer will scale it rather than drop it",
         scene_id: segment.scene_id,
       });
     }

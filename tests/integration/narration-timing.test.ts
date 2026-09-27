@@ -29,6 +29,29 @@ async function boardFor(slug: string, extra: Record<string, unknown> = {}) {
   }).storyboard;
 }
 
+/**
+ * A per-line measured track, in the shape a SAPI measurement takes: mostly
+ * mid-length lines with one long one, and the sentence pause a speech engine adds
+ * on top of the speech itself.
+ *
+ * The length comes from the script rather than from a literal. These fixtures used
+ * to be eight-element arrays written for the eight-line script this topic had
+ * before the standalone disclaimer was dropped, and when the line count changed to
+ * seven they kept their length: the builder was handed eight measurements for
+ * seven lines, and the timing block fell back to `estimated` — so the test that
+ * exists to prove measured durations are used was quietly testing the estimate.
+ * Deriving the length makes that class of drift impossible.
+ */
+function measuredTrackFor(
+  storyboard: { narration: { segments: unknown[] } },
+  { longIndex = 1, longSeconds = 9.8, shortSeconds = 3.2 } = {},
+): number[] {
+  return storyboard.narration.segments.map((_, index) => (index === longIndex ? longSeconds : shortSeconds));
+}
+
+/** The sentence pause a speech engine adds after each line. */
+const SENTENCE_PAUSE_S = 1.389;
+
 describe("narration timing", () => {
   it("gives a spoken line a window proportional to how long it takes to say", async () => {
     const storyboard = await boardFor("caffeine-and-the-brain");
@@ -96,41 +119,69 @@ describe("narration timing", () => {
     // The whole point of the timing block: a reader can tell that this video is
     // longer than its target because the audio is, not because a field was
     // quietly reused to mean something else.
-    const measured = [3.02, 9.8, 5.62, 7.34, 5.7, 7.36, 3.05, 5.43];
-    const pause = 1.389;
-    const track = measured.reduce((a, b) => a + b, 0) + pause * measured.length;
+    const base = await boardFor("caffeine-and-the-brain");
+    const measured = measuredTrackFor(base);
+    expect(measured).toHaveLength(base.narration.segments.length);
+    const track = measured.reduce((a, b) => a + b, 0) + SENTENCE_PAUSE_S * measured.length;
     const storyboard = await boardFor("caffeine-and-the-brain", {
       narrationSpeechS: measured,
       trackDurationS: track,
       leadS: 0.12,
       tailS: 0.78,
-      sentencePauseS: pause,
+      sentencePauseS: SENTENCE_PAUSE_S,
+      plan: { total_s: track },
+    });
+
+    const t = storyboard.narration.timing;
+    expect(t.source, "a supplied per-line measurement is a measurement, not an estimate").toBe("measured");
+    expect(t.target_duration_s).toBe(55);
+    expect(t.track_duration_s).toBeCloseTo(track, 2);
+    expect(storyboard.narration.duration_s).toBeCloseTo(track, 2);
+    expect(t.lead_s).toBe(0.12);
+    expect(t.tail_s).toBe(0.78);
+    expect(t.sentence_pause_s).toBe(SENTENCE_PAUSE_S);
+    expect(t.line_count).toBe(measured.length);
+    // Speech is the spoken span, which is neither the content nor the whole file.
+    expect(t.speech_duration_s).toBeCloseTo(track - 0.12 - 0.78, 2);
+    expect(t.speech_duration_s).toBeGreaterThan(t.content_duration_s);
+    expect(t.speech_duration_s).toBeLessThan(t.track_duration_s);
+    // And the video was sized to the track, not to the brief.
+    expect(storyboard.duration).toBeCloseTo(track, 1);
+  });
+
+  it("reports a track that overruns the target as an overrun", async () => {
+    // A video longer than its target is not a failure of layout: it is the audio
+    // being longer than the brief, and it has to be visible as such. The caffeine
+    // script no longer covers this on its own — dropping the standalone disclaimer
+    // took a spoken line out, so its real track lands under 55s — so the overrun
+    // path is exercised with a deliberately slow track rather than by hoping the
+    // corpus drifts back over the line.
+    const base = await boardFor("caffeine-and-the-brain");
+    const measured = base.narration.segments.map(() => 8.4);
+    const track = measured.reduce((a, b) => a + b, 0) + SENTENCE_PAUSE_S * measured.length;
+    expect(track, "this fixture has to actually overrun the target").toBeGreaterThan(55);
+
+    const storyboard = await boardFor("caffeine-and-the-brain", {
+      narrationSpeechS: measured,
+      trackDurationS: track,
       plan: { total_s: track },
     });
 
     const t = storyboard.narration.timing;
     expect(t.target_duration_s).toBe(55);
     expect(t.track_duration_s).toBeCloseTo(track, 2);
-    expect(storyboard.narration.duration_s).toBeCloseTo(track, 2);
-    expect(t.lead_s).toBe(0.12);
-    expect(t.tail_s).toBe(0.78);
-    expect(t.sentence_pause_s).toBe(pause);
-    expect(t.line_count).toBe(measured.length);
-    // Speech is the spoken span, which is neither the content nor the whole file.
-    expect(t.speech_duration_s).toBeCloseTo(track - 0.12 - 0.78, 2);
-    expect(t.speech_duration_s).toBeGreaterThan(t.content_duration_s);
-    expect(t.speech_duration_s).toBeLessThan(t.track_duration_s);
-    // And the video is longer than its target, for a reason that is now visible.
     expect(storyboard.duration).toBeGreaterThan(t.target_duration_s);
+    expect(storyboard.duration).toBeCloseTo(track, 1);
   });
 
   it("sizes shots to the real track so the last sentence is not cut off", async () => {
     // A speech engine adds a pause per sentence, so the rendered track is longer
     // than the sum of its lines. Measured on SAPI: content + 1.389s per line.
     // A video sized from the speech estimate alone runs out before the audio
-    // does, and the closing disclaimer is what gets cut.
-    const measured = [3.02, 9.8, 5.62, 7.34, 5.7, 7.36, 3.05, 5.43];
-    const track = measured.reduce((a, b) => a + b, 0) + 1.389 * measured.length;
+    // does, and the closing line is what gets cut.
+    const base = await boardFor("caffeine-and-the-brain");
+    const measured = measuredTrackFor(base, { longSeconds: 12 });
+    const track = measured.reduce((a, b) => a + b, 0) + SENTENCE_PAUSE_S * measured.length;
     const storyboard = await boardFor("caffeine-and-the-brain", {
       narrationSpeechS: measured,
       plan: { total_s: track },
@@ -148,14 +199,14 @@ describe("narration timing", () => {
   it("sizes shots from measurements rather than from the estimate", async () => {
     // Same runtime, same script, different speech: the shot that holds a long
     // line has to grow, or the caption runs past the cut.
-    const longFirst = await boardFor("caffeine-and-the-brain", {
-      narrationSpeechS: [12, 1, 1, 1, 1, 1, 1, 1],
-      plan: { total_s: 40 },
-    });
-    const shortFirst = await boardFor("caffeine-and-the-brain", {
-      narrationSpeechS: [1, 12, 1, 1, 1, 1, 1, 1],
-      plan: { total_s: 40 },
-    });
+    const base = await boardFor("caffeine-and-the-brain");
+    const lineCount = base.narration.segments.length;
+    const withLongFirst = base.narration.segments.map((_, i) => (i === 0 ? 12 : 1));
+    const withLongSecond = base.narration.segments.map((_, i) => (i === 1 ? 12 : 1));
+    const options = { plan: { total_s: 40 } };
+    const longFirst = await boardFor("caffeine-and-the-brain", { ...options, narrationSpeechS: withLongFirst });
+    const shortFirst = await boardFor("caffeine-and-the-brain", { ...options, narrationSpeechS: withLongSecond });
+    expect(withLongFirst).toHaveLength(lineCount);
     const firstOf = (b: typeof longFirst) => {
       const s = b.scenes[0];
       if (!s) throw new Error("expected a first scene");
